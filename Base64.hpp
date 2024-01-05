@@ -19,7 +19,7 @@ namespace Base64
 		{
 			if (base64Sym == BASE_64_ALPHABET[i]) return i;
 		}
-
+		if (base64Sym == NULL_BYTE) return 0; // Так має бути, бо інакше не працює)
 		return ELEMENT_NOT_FOUND;
 	}
 
@@ -86,11 +86,47 @@ namespace Base64
 		return (isalnum(c) || (c == '+') || (c == '/'));
 	}
 
-	void decode(std::ifstream& input, std::ofstream& output)
+	std::string decode(std::ifstream& input, std::ofstream& output)
 	{
-		if (!input.is_open()) return;
-		if (!output.is_open()) return;
+		if (!input.is_open()) return "";
+		if (!output.is_open()) return "";
 		std::vector<char> buffer(std::istreambuf_iterator<char>(input), {});
+		std::string res;
+
+		if (buffer.size() % 4 != 0)
+		{
+			std::cerr << "Size of encoded text must divide by 4" << std::endl;
+			return "";
+		}
+
+		for (size_t i = 0; i < buffer.size(); i += 4)
+		{
+			if (!is_base64(buffer[i]) && !is_base64(buffer[i + 1]) && !is_base64(buffer[i + 2]) && !is_base64(buffer[i + 3]))
+			{
+				std::cerr << "Quarter " << i << ": it is not base64 symbol." << std::endl;
+				return "";
+			}
+
+			const char y_1 = findIndex(buffer[i]);
+			const char y_2 = findIndex(buffer[i + 1]);
+			const char y_3 = findIndex(buffer[i + 2]);
+			const char y_4 = findIndex(buffer[i + 3]);
+
+
+			const char x_1 = (y_1 << 2) | ((y_2 & 0b00110000) >> 4);
+			const char x_2 = ((y_2 & 0b00001111) << 4) | ((y_3 & 0b00111100) >> 2);
+			const char x_3 = (((y_3 & 0b00000011) << 6) | y_4);
+
+			res.push_back(x_1);
+			res.push_back(x_2);
+			res.push_back(x_3);
+
+		}
+
+		output << res;
+
+		return res;
+
 	}
 		
 	
